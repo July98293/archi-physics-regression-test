@@ -1,6 +1,42 @@
 # Validation Regression Detection Agent for CMS from Archi model
 
-Automated detection of performance regressions when reconstruction code changes using Archi's document retrieval, reasoning, and tool orchestration to reduce manual validation work and accelerate code review.
+Scope: create an automated detection of performance regressions when reconstruction code changes using Archi's document retrieval, reasoning, and tool orchestration to reduce manual validation work and accelerate code review.
+
+## Curent status
+
+Starting from cloning archi repo, i add:
+
+- cms_regression_validation_agent.py  
+- cms_approval_workflow.py  
+- src/archi/pipelines/agents/tools/cms_regression_tools.py 
+- examples/agents/cms-regression-validation.md
+
+Then dowload data from CMS Open Data Sample https://opendata.cern.ch - Record 545 — real CMS detector data from 2011 (LHC Run2011A, 7 TeV proton-proton collisions).
+
+Three scripts, converts real CMS CSV data in NanoAOD-style ROOT file, one create the baseline metrics and te agent_pipeline.py is the automated evaluation on every git trigger, that recall human help only in certain condition:
+
+Δ per metric	Agent verdict	Human needed?
+≥ 0% (equal or better)	AUTO_APPROVE ✓	No
+−2% to 0%	SAFE	No
+−5% to −2%	NEEDS_HUMAN_REVIEW ⚠	Yes
+< −5%	AUTO_REJECT ✗	Yes (override only)
+
+The two results
+Regression (def7890 — fails 10% of tight IDs):
+
+
+tight_id_eff_10_20    0.9262 → 0.8329   -10.1%  ✗ CRITICAL_REGRESSION
+tight_id_eff_20_50    0.7207 → 0.6474   -10.2%  ✗ CRITICAL_REGRESSION
+→ AUTO_REJECT  ·  human shown prompt  ·  chose REJECT  →  ✗ BLOCKED
+
+Improvement (abc1234 — recovers isolated muons):
+
+
+tight_id_eff_10_20    0.9262 → 0.9306   +0.5%   ↑ IMPROVEMENT
+tight_id_eff_20_50    0.7207 → 0.7339   +1.8%   ↑ IMPROVEMENT
+→ AUTO_APPROVED  ·  no human involved  →  ✓ MERGED
+
+The bigger vision is ofc much detailed and bigger, here it go:
 
 ## Problem
 
@@ -97,22 +133,6 @@ Track during pilot deployment:
 
 ---
 
-## Curent status
-
-Starting from cloning the repo, i add:
-
-- cms_regression_validation_agent.py  
-- cms_approval_workflow.py  
-- src/archi/pipelines/agents/tools/cms_regression_tools.py 
-- examples/agents/cms-regression-validation.md
-
-Then dowload data from CMS Open Data Sample https://opendata.cern.ch - Record 545 — real CMS detector data from 2011 (LHC Run2011A, 7 TeV proton-proton collisions).
-
-Two CSV files, both containing pairs of muons reconstructed by the CMS detector:
-- Zmumu.csv	Z boson decaying to two muons (Z→μμ)
-- Jpsimumu.csv J/ψ meson decaying to two muons (J/ψ→μμ)
-
-Then a example of code is create called compute_baseline.py , then a code change is made. At this point the agent runs a 6-step automated evaluation to compute metricsa and if they are better the new code is merge.
 
 ## Implementation Roadmap
 
